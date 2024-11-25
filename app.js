@@ -1,5 +1,5 @@
 import * as THREE from './libs/three/three.module.js';
-import { VRButton } from './libs/VRButton.js';
+import { VRButton } from 'https://cdn.jsdelivr.net/npm/three@0.152/examples/jsm/webxr/VRButton.js';
 import { GLTFLoader } from './libs/three/jsm/GLTFLoader.js';
 import { OrbitControls } from './libs/three/jsm/OrbitControls.js';
 
@@ -36,7 +36,7 @@ class App {
     }
 
     initScene() {
-        // Clear the scene by removing all children
+        // Clear the scene
         while (this.scene.children.length > 0) {
             this.scene.remove(this.scene.children[0]);
         }
@@ -47,19 +47,24 @@ class App {
         light.position.set(1, 1, 1).normalize();
         this.scene.add(light);
 
-        // Load the ionic_pillar.glb model from a Base64-decoded URL
-        const encodedModelURL = "aHR0cHM6Ly9pcGZzLmlvL2lwZnMvUW1XclN6QkVEMnhEa2lTVlJxWlE3RmNHZWpm eWRocEJpWDJGOFVhVHBpQmk4bg==";
-        const decodedModelURL = atob(encodedModelURL);
+        const modelURL = "https://dweb.link/ipfs/QmSRkv8465jEP1wRC2bJHehRb4pewGjqn75BCmJNTR2tk5";
 
         const loader = new GLTFLoader();
-        loader.load(decodedModelURL, (gltf) => {
-            const model = gltf.scene;
-            model.position.set(0, 0, 0); // Adjust position as necessary
-            model.scale.set(1, 1, 1); // Adjust scale as necessary
-            this.scene.add(model);
-        }, undefined, (error) => {
-            console.error('An error occurred while loading the GLB model:', error);
-        });
+        loader.load(
+            modelURL,
+            (gltf) => {
+                const model = gltf.scene;
+                model.position.set(0, 0, 0); // Adjust position
+                model.scale.set(1, 1, 1);   // Adjust scale
+                this.scene.add(model);
+            },
+            (xhr) => {
+                console.log(`Model loading: ${(xhr.loaded / xhr.total) * 100}% loaded`);
+            },
+            (error) => {
+                console.error('An error occurred while loading the GLB model:', error);
+            }
+        );
 
         // Add a simple plane as the ground
         const ground = new THREE.Mesh(
@@ -72,8 +77,9 @@ class App {
 
     setupXR() {
         this.renderer.xr.enabled = true;
-        new VRButton(this.renderer);
+        document.body.appendChild(VRButton.createButton(this.renderer));
 
+        // Handle controllers
         this.controllers = this.buildControllers();
     }
 
@@ -81,6 +87,12 @@ class App {
         const controllers = [];
         for (let i = 0; i <= 1; i++) {
             const controller = this.renderer.xr.getController(i);
+            controller.addEventListener('selectstart', () => {
+                console.log(`Controller ${i} selectstart`);
+            });
+            controller.addEventListener('selectend', () => {
+                console.log(`Controller ${i} selectend`);
+            });
             this.scene.add(controller);
             controllers.push(controller);
         }
